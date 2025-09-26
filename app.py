@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.impute import SimpleImputer
@@ -14,187 +13,43 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, precision_recall_fscore_support
 import warnings
-import time
 warnings.filterwarnings('ignore')
 
-# Configuration de la page
+# Configuration simple
 st.set_page_config(
     page_title="Uber AI Prediction Platform",
     page_icon="🚗",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
-# Palette de couleurs globale
-COLORS = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#11998e', '#38ef7d']
-
-# CSS moderne mais simplifié pour éviter les conflits DOM
+# CSS minimal et sûr
 st.markdown("""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-    
-    .stApp {
-        background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 100%);
-        color: #ffffff;
-        font-family: 'Inter', sans-serif;
-    }
-    
-    .main .block-container {
-        padding-top: 2rem !important;
-        max-width: 95% !important;
-    }
-    
-    .hero-header {
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 20px;
-        padding: 3rem 2rem;
+    .main { background-color: #0e1117; }
+    .metric-container { 
+        padding: 1rem; 
+        background-color: #262730; 
+        border-radius: 10px; 
+        margin: 0.5rem 0;
         text-align: center;
-        margin-bottom: 2rem;
-        backdrop-filter: blur(10px);
     }
-    
-    .hero-title {
-        font-size: 3rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 1rem;
+    .success-box { 
+        padding: 1rem; 
+        background-color: #1f4e3d; 
+        border-radius: 10px; 
+        border-left: 5px solid #00ff88;
     }
-    
-    .hero-subtitle {
-        font-size: 1.2rem;
-        color: rgba(255, 255, 255, 0.7);
-        margin-bottom: 0.5rem;
-    }
-    
-    .hero-author {
-        font-size: 1rem;
-        font-weight: 600;
-        color: #4facfe;
-    }
-    
-    .metric-card {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 15px;
-        padding: 2rem 1rem;
-        text-align: center;
-        backdrop-filter: blur(10px);
-        margin-bottom: 1rem;
-    }
-    
-    .metric-card:hover {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(102, 126, 234, 0.3);
-    }
-    
-    .metric-value {
-        font-size: 2.5rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        display: block;
-        margin-bottom: 0.5rem;
-    }
-    
-    .metric-label {
-        color: rgba(255, 255, 255, 0.6);
-        font-size: 0.9rem;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    
-    .success-card {
-        background: linear-gradient(135deg, rgba(17, 153, 142, 0.2), rgba(56, 239, 125, 0.2));
-        border: 1px solid rgba(56, 239, 125, 0.3);
-        border-radius: 15px;
-        padding: 2rem;
-        backdrop-filter: blur(10px);
-    }
-    
-    .warning-card {
-        background: linear-gradient(135deg, rgba(252, 70, 107, 0.2), rgba(63, 94, 251, 0.2));
-        border: 1px solid rgba(252, 70, 107, 0.3);
-        border-radius: 15px;
-        padding: 2rem;
-        backdrop-filter: blur(10px);
-    }
-    
-    .section-header {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #ffffff;
-        margin-bottom: 2rem;
-        padding-left: 1rem;
-        border-left: 4px solid #667eea;
-    }
-    
-    .stButton > button {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        border: none;
-        border-radius: 10px;
-        color: white;
-        font-weight: 600;
-        padding: 0.75rem 2rem;
-        font-size: 1rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        width: 100%;
-    }
-    
-    .stButton > button:hover {
-        background: linear-gradient(135deg, #764ba2, #667eea);
-        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-    }
-    
-    .stTabs [data-baseweb="tab-list"] {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
-        padding: 0.5rem;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        background: transparent;
-        border-radius: 8px;
-        color: rgba(255, 255, 255, 0.7);
-        font-weight: 600;
-        padding: 0.75rem 1.5rem;
-        border: none;
-    }
-    
-    .stTabs [data-baseweb="tab"]:hover {
-        background: rgba(102, 126, 234, 0.1);
-        color: #ffffff;
-    }
-    
-    .stTabs [data-baseweb="tab"][aria-selected="true"] {
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white;
-    }
-    
-    /* Sidebar styling */
-    .css-1d391kg {
-        background: rgba(0, 0, 0, 0.3) !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.1) !important;
-    }
-    
-    /* Remove problematic animations */
-    * {
-        transition: all 0.2s ease !important;
+    .warning-box { 
+        padding: 1rem; 
+        background-color: #4e1f1f; 
+        border-radius: 10px; 
+        border-left: 5px solid #ff4444;
     }
 </style>
 """, unsafe_allow_html=True)
 
 @st.cache_data
 def load_and_validate_data():
-    """Fonction de chargement avec fallback vers données de démo"""
     try:
         df = pd.read_csv('archive/ncr_ride_bookings.csv', encoding='utf-8', low_memory=False)
         if df.empty:
@@ -207,9 +62,8 @@ def load_and_validate_data():
 
 @st.cache_data
 def generate_demo_data():
-    """Génère des données de démonstration"""
     np.random.seed(42)
-    n_samples = 8000
+    n_samples = 5000
     
     dates = pd.date_range('2023-01-01', periods=n_samples, freq='2H')
     
@@ -349,45 +203,26 @@ def train_models_exact_method(X_processed, y_encoded):
     best_model_result = max(results, key=lambda x: x['accuracy'])
     return results, best_model_result, X_train, X_test, y_train, y_test
 
-def create_plotly_theme():
-    """Thème Plotly"""
-    return {
-        'layout': {
-            'paper_bgcolor': 'rgba(0,0,0,0)',
-            'plot_bgcolor': 'rgba(0,0,0,0)', 
-            'font': {'color': '#ffffff', 'family': 'Inter'},
-            'colorway': COLORS
-        }
-    }
-
 def main():
-    # Header
-    st.markdown("""
-    <div class="hero-header">
-        <h1 class="hero-title">Uber AI Prediction Platform</h1>
-        <p class="hero-subtitle">Intelligence Artificielle • Machine Learning • Data Science</p>
-        <p class="hero-author">Développé par Nadir Ali Ahmed</p>
-    </div>
-    """, unsafe_allow_html=True)
+    # Header simple
+    st.title("🚗 Uber AI Prediction Platform")
+    st.markdown("**Intelligence Artificielle • Machine Learning • Data Science**")
+    st.markdown("*Développé par Nadir Ali Ahmed*")
+    st.markdown("---")
     
     # Sidebar
     with st.sidebar:
-        st.markdown("## Mission Control")
+        st.header("Mission Control")
         st.markdown("""
         **Méthodologie :**
-        • Feature Engineering Temporel
-        • Variables Géospatiales
-        • Patterns Comportementaux
+        - Feature Engineering Temporel
+        - Variables Géospatiales  
+        - Patterns Comportementaux
         
         **Modèles IA :**
-        • Random Forest Équilibré
-        • Régression Logistique
-        • Validation Croisée 5-Fold
-        
-        **Performance :**
-        • Accuracy > 75%
-        • Prédictions Temps Réel
-        • Interface Moderne
+        - Random Forest Équilibré
+        - Régression Logistique
+        - Validation Croisée 5-Fold
         """)
     
     # Chargement
@@ -406,45 +241,57 @@ def main():
     ])
     
     with tab1:
-        st.markdown('<h2 class="section-header">Executive Dashboard</h2>', unsafe_allow_html=True)
+        st.header("Executive Dashboard")
         
-        # Métriques
+        # Métriques avec HTML minimal
         col1, col2, col3, col4 = st.columns(4)
         
-        metrics = [
-            ("Observations", f"{len(df_raw):,}", "📊"),
-            ("Variables", f"{len(df_raw.columns)}", "🔢"), 
-            ("Taux Succès", f"{(df_raw['Booking Status'] == 'Success').mean()*100:.1f}%", "✅"),
-            ("Performance IA", f"{best_model_result['accuracy']*100:.1f}%", "🎯")
-        ]
+        with col1:
+            st.markdown(f"""
+            <div class="metric-container">
+                <h2>📊</h2>
+                <h3>{len(df_raw):,}</h3>
+                <p>Observations</p>
+            </div>
+            """, unsafe_allow_html=True)
         
-        for i, (col, (label, value, icon)) in enumerate(zip([col1, col2, col3, col4], metrics)):
-            with col:
-                st.markdown(f"""
-                <div class="metric-card">
-                    <span style="font-size: 2.5rem; display: block; margin-bottom: 0.5rem;">{icon}</span>
-                    <span class="metric-value">{value}</span>
-                    <span class="metric-label">{label}</span>
-                </div>
-                """, unsafe_allow_html=True)
+        with col2:
+            st.markdown(f"""
+            <div class="metric-container">
+                <h2>🔢</h2>
+                <h3>{len(df_raw.columns)}</h3>
+                <p>Variables</p>
+            </div>
+            """, unsafe_allow_html=True)
         
-        # Visualisations
+        with col3:
+            success_rate = (df_raw['Booking Status'] == 'Success').mean() * 100
+            st.markdown(f"""
+            <div class="metric-container">
+                <h2>✅</h2>
+                <h3>{success_rate:.1f}%</h3>
+                <p>Taux Succès</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with col4:
+            st.markdown(f"""
+            <div class="metric-container">
+                <h2>🎯</h2>
+                <h3>{best_model_result['accuracy']*100:.1f}%</h3>
+                <p>Performance IA</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Visualisations simples
         col1, col2 = st.columns(2)
         
         with col1:
             st.subheader("Distribution des Statuts")
             status_counts = df_raw['Booking Status'].value_counts()
             
-            fig = go.Figure(data=go.Pie(
-                labels=status_counts.index,
-                values=status_counts.values,
-                hole=0.5,
-                marker_colors=COLORS[:len(status_counts)]
-            ))
-            
-            fig.update_traces(textposition='inside', textinfo='percent+label')
-            fig.update_layout(**create_plotly_theme()['layout'], height=400, showlegend=True)
-            
+            fig = px.pie(values=status_counts.values, names=status_counts.index)
+            fig.update_layout(height=400)
             st.plotly_chart(fig, use_container_width=True)
         
         with col2:
@@ -455,95 +302,57 @@ def main():
                 'Score': [0.87, 0.82, 0.84, best_model_result['accuracy']]
             })
             
-            fig = go.Figure()
-            fig.add_trace(go.Bar(
-                x=perf_data['Score'],
-                y=perf_data['Métrique'],
-                orientation='h',
-                marker_color=COLORS[:len(perf_data)]
-            ))
-            
-            fig.update_layout(**create_plotly_theme()['layout'], height=400)
+            fig = px.bar(perf_data, x='Score', y='Métrique', orientation='h')
+            fig.update_layout(height=400)
             st.plotly_chart(fig, use_container_width=True)
     
     with tab2:
-        st.markdown('<h2 class="section-header">Analyse des Données</h2>', unsafe_allow_html=True)
+        st.header("Analyse des Données")
         
         col1, col2 = st.columns(2)
         
         with col1:
             st.subheader("Patterns Temporels")
-            if 'Date' in df_clean.columns and 'Time' in df_clean.columns:
-                try:
-                    hourly_data = df_clean.groupby(pd.to_datetime(df_clean['Date'] + ' ' + df_clean['Time']).dt.hour).size()
-                    
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(
-                        x=hourly_data.index,
-                        y=hourly_data.values,
-                        mode='lines+markers',
-                        line=dict(color=COLORS[0], width=3),
-                        marker=dict(size=8, color=COLORS[1])
-                    ))
-                    
-                    fig.update_layout(**create_plotly_theme()['layout'], height=350)
-                    st.plotly_chart(fig, use_container_width=True)
-                except:
-                    st.info("Données temporelles non disponibles")
+            try:
+                hourly_data = df_clean.groupby(pd.to_datetime(df_clean['Date'] + ' ' + df_clean['Time']).dt.hour).size()
+                fig = px.line(x=hourly_data.index, y=hourly_data.values)
+                fig.update_layout(height=350)
+                st.plotly_chart(fig, use_container_width=True)
+            except:
+                st.info("Données temporelles non disponibles")
         
         with col2:
             st.subheader("Types de Véhicules")
             vehicle_dist = df_raw['Vehicle Type'].value_counts()
-            
-            fig = go.Figure()
-            fig.add_trace(go.Bar(
-                x=vehicle_dist.values,
-                y=vehicle_dist.index,
-                orientation='h',
-                marker_color=COLORS[:len(vehicle_dist)]
-            ))
-            
-            fig.update_layout(**create_plotly_theme()['layout'], height=350)
+            fig = px.bar(x=vehicle_dist.values, y=vehicle_dist.index, orientation='h')
+            fig.update_layout(height=350)
             st.plotly_chart(fig, use_container_width=True)
     
     with tab3:
-        st.markdown('<h2 class="section-header">Modèles d\'IA</h2>', unsafe_allow_html=True)
+        st.header("Modèles d'IA")
         
         st.subheader("Comparaison des Algorithmes")
         
         comparison_data = pd.DataFrame([
-            {'Modèle': r['name'], 'Accuracy': r['accuracy'], 'CV Mean': r['cv_mean']}
+            {'Modèle': r['name'], 'Accuracy': r['accuracy']}
             for r in results
         ])
         
-        fig = go.Figure()
-        
-        for i, model in enumerate(comparison_data['Modèle']):
-            fig.add_trace(go.Bar(
-                name=model,
-                x=[model],
-                y=[comparison_data.iloc[i]['Accuracy']],
-                marker_color=COLORS[i],
-                text=f"{comparison_data.iloc[i]['Accuracy']:.3f}",
-                textposition='outside'
-            ))
-        
-        fig.update_layout(**create_plotly_theme()['layout'], height=400, showlegend=False)
+        fig = px.bar(comparison_data, x='Modèle', y='Accuracy')
+        fig.update_layout(height=400)
         st.plotly_chart(fig, use_container_width=True)
         
-        # Champion Model
+        # Champion Model avec HTML sûr
         st.markdown(f"""
-        <div class="success-card">
+        <div class="success-box">
             <h3>🏆 Champion Model : {best_model_result['name']}</h3>
-            <p style="font-size: 1.2rem;">
-                <strong>Accuracy:</strong> {best_model_result['accuracy']:.4f} ({best_model_result['accuracy']*100:.2f}%)
-            </p>
+            <p><strong>Accuracy:</strong> {best_model_result['accuracy']:.4f} ({best_model_result['accuracy']*100:.2f}%)</p>
             <p><strong>Validation Croisée:</strong> {best_model_result['cv_mean']:.4f} ± {best_model_result['cv_std']:.4f}</p>
         </div>
         """, unsafe_allow_html=True)
     
     with tab4:
-        st.markdown('<h2 class="section-header">Analyse de Performance</h2>', unsafe_allow_html=True)
+        st.header("Analyse de Performance")
         
         col1, col2 = st.columns(2)
         
@@ -551,17 +360,9 @@ def main():
             st.subheader("Matrice de Confusion")
             cm = confusion_matrix(y_test, best_model_result['predictions'])
             
-            fig = go.Figure(data=go.Heatmap(
-                z=cm,
-                x=label_encoder.classes_,
-                y=label_encoder.classes_,
-                colorscale='Viridis',
-                text=cm,
-                texttemplate="%{text}",
-                showscale=True
-            ))
-            
-            fig.update_layout(**create_plotly_theme()['layout'], height=400)
+            fig = px.imshow(cm, text_auto=True, aspect="auto",
+                          x=label_encoder.classes_, y=label_encoder.classes_)
+            fig.update_layout(height=400)
             st.plotly_chart(fig, use_container_width=True)
         
         with col2:
@@ -570,62 +371,36 @@ def main():
                 y_test, best_model_result['predictions'], average=None
             )
             
-            metrics_data = pd.DataFrame({
+            metrics_df = pd.DataFrame({
                 'Classe': label_encoder.classes_,
                 'Precision': precision,
                 'Recall': recall, 
                 'F1-Score': f1
             })
             
-            fig = go.Figure()
-            
-            for i, metric in enumerate(['Precision', 'Recall', 'F1-Score']):
-                fig.add_trace(go.Bar(
-                    name=metric,
-                    x=metrics_data['Classe'],
-                    y=metrics_data[metric],
-                    marker_color=COLORS[i]
-                ))
-            
-            fig.update_layout(**create_plotly_theme()['layout'], height=400, barmode='group')
-            st.plotly_chart(fig, use_container_width=True)
+            st.dataframe(metrics_df, use_container_width=True)
     
     with tab5:
-        st.markdown('<h2 class="section-header">Prédiction en Temps Réel</h2>', unsafe_allow_html=True)
-        
-        st.markdown("""
-        <div style="text-align: center; margin-bottom: 2rem;">
-            <p style="font-size: 1.1rem; color: rgba(255,255,255,0.7);">
-                Testez le modèle d'IA avec vos paramètres personnalisés
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+        st.header("Prédiction en Temps Réel")
+        st.markdown("Testez le modèle d'IA avec vos paramètres personnalisés")
         
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            pickup_options = df_clean['Pickup Location'].unique()
-            drop_options = df_clean['Drop Location'].unique()
-            
-            pickup = st.selectbox("📍 Lieu de Départ", pickup_options)
-            drop = st.selectbox("🏁 Destination", drop_options)
+            pickup = st.selectbox("Lieu de Départ", df_clean['Pickup Location'].unique())
+            drop = st.selectbox("Destination", df_clean['Drop Location'].unique())
             
         with col2:
-            vehicle_options = df_clean['Vehicle Type'].unique()
-            payment_options = df_clean['Payment Method'].unique()
-            
-            vehicle_type = st.selectbox("🚗 Type de Véhicule", vehicle_options)
-            payment = st.selectbox("💳 Paiement", payment_options)
+            vehicle_type = st.selectbox("Type de Véhicule", df_clean['Vehicle Type'].unique())
+            payment = st.selectbox("Paiement", df_clean['Payment Method'].unique())
             
         with col3:
-            distance = st.slider("📏 Distance (km)", 1.0, 50.0, 12.0)
-            booking_value = st.slider("💰 Valeur (€)", 10.0, 500.0, 120.0)
-            hour = st.slider("🕐 Heure", 0, 23, 14)
+            distance = st.slider("Distance (km)", 1.0, 50.0, 12.0)
+            booking_value = st.slider("Valeur", 10.0, 500.0, 120.0)
+            hour = st.slider("Heure", 0, 23, 14)
         
-        if st.button("🚀 PRÉDIRE LE STATUT"):
+        if st.button("PRÉDIRE LE STATUT", type="primary"):
             with st.spinner('IA en action...'):
-                time.sleep(0.5)  # Effet visuel
-                
                 test_data = {}
                 
                 for feature in X_processed.columns:
@@ -665,18 +440,18 @@ def main():
                     
                     if predicted_class == 'Success':
                         st.markdown(f"""
-                        <div class="success-card" style="text-align: center; margin: 2rem 0;">
-                            <h2 style="color: #38ef7d;">✅ SUCCÈS PRÉDIT</h2>
+                        <div class="success-box">
+                            <h2>✅ SUCCÈS PRÉDIT</h2>
                             <h3>Réservation : {predicted_class}</h3>
-                            <p style="font-size: 1.1rem;">Confiance : <strong>{confidence:.1%}</strong></p>
+                            <p>Confiance : <strong>{confidence:.1%}</strong></p>
                         </div>
                         """, unsafe_allow_html=True)
                     else:
                         st.markdown(f"""
-                        <div class="warning-card" style="text-align: center; margin: 2rem 0;">
-                            <h2 style="color: #fc466b;">⚠️ RISQUE DÉTECTÉ</h2>
+                        <div class="warning-box">
+                            <h2>⚠️ RISQUE DÉTECTÉ</h2>
                             <h3>Statut : {predicted_class}</h3>
-                            <p style="font-size: 1.1rem;">Confiance : <strong>{confidence:.1%}</strong></p>
+                            <p>Confiance : <strong>{confidence:.1%}</strong></p>
                         </div>
                         """, unsafe_allow_html=True)
                     
@@ -686,40 +461,16 @@ def main():
                         'Probabilité': prediction_proba
                     }).sort_values('Probabilité', ascending=True)
                     
-                    fig = go.Figure()
-                    fig.add_trace(go.Bar(
-                        x=proba_df['Probabilité'],
-                        y=proba_df['Statut'],
-                        orientation='h',
-                        marker_color=COLORS[:len(proba_df)],
-                        text=[f'{p:.1%}' for p in proba_df['Probabilité']],
-                        textposition='outside'
-                    ))
-                    
-                    fig.update_layout(
-                        **create_plotly_theme()['layout'],
-                        title="Distribution des Probabilités",
-                        height=300
-                    )
-                    
+                    fig = px.bar(proba_df, x='Probabilité', y='Statut', orientation='h')
+                    fig.update_layout(height=300)
                     st.plotly_chart(fig, use_container_width=True)
                     
                 except Exception as e:
                     st.error(f"Erreur de prédiction : {e}")
     
-    # Footer
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("""
-    <div style="text-align: center; padding: 2rem 0; border-top: 1px solid rgba(255,255,255,0.1);">
-        <h3 style="color: #4facfe; margin-bottom: 1rem;">🚀 Portfolio Data Science</h3>
-        <p style="color: rgba(255,255,255,0.7);">
-            <strong>Développé par Nadir Ali Ahmed</strong>
-        </p>
-        <p style="color: rgba(255,255,255,0.5);">
-            Intelligence Artificielle • Machine Learning • Python
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    # Footer simple
+    st.markdown("---")
+    st.markdown("**Développé par Nadir Ali Ahmed** • Intelligence Artificielle • Machine Learning • Python")
 
 if __name__ == "__main__":
     main()
